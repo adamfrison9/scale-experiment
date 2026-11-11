@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <title>Scale Experiment</title>
+  </head>
+
+  <body>
+    <form>
+    </form>
+  </body>
+  
+  <script src="https://unpkg.com/tone"></script>
+  <script src="https://cdn.jsdelivr.net/gh/netizenorg/netnet-standard-library@1.0.1/build/nn.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tonal/browser/tonal.min.js"></script>
+  <script>
+    let interval = 200
+    let step = 0
+    let pentatonic = returnScale("c4", "pentatonic")
+    let synth
+
+    function setup () {
+      synth = new Tone.Synth().toDestination()
+      loop()
+    }
+
+    function play (note) {
+      synth.triggerAttackRelease(note, '8n')
+    }
+
+    function getNote (root, step) {
+      return pentatonic[step % pentatonic.length]
+    }
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms))
+    }
+    
+    function returnScale(root, scale) {
+      let myScale = Tonal.Scale.get(root + " " + scale).notes
+      let result = []
+
+      for (let i = 0; i < myScale.length; i++) {
+        result.push(myScale[i])
+      }
+      for (let i = myScale.length - 2; i > 0; i--) {
+        result.push(myScale[i])
+      }
+
+      return result
+    }
+
+    async function loop() {
+      while (true) {
+        step += 1
+        play(getNote(null, step))
+        await sleep(interval)
+      }
+    }
+
+    window.addEventListener('load', setup)
+  </script>
+</html>
