@@ -5,34 +5,234 @@
   </head>
 
   <body>
-    <form>
+    <svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 770.38 1712.33" style="width: 200px;">
+      <defs>
+        <style>
+          .cls-1 {
+            fill: none;
+            stroke: #231f20;
+            stroke-miterlimit: 10;
+            stroke-width: 20px;
+          }
+          
+          [id^="fret-string"] {
+            display: flex;
+            justify-content: space-evenly;
+          }
+        </style>
+      </defs>
+      <line class="cls-1" x1="268.3" y1="1132.22" x2="129.64" y2="1710"/>
+      <line class="cls-1" x1="268.3" y1="1132.22" x2="385.19" y2="1710"/>
+      <path class="cls-1" d="M268.3,1132.22V460c-154.7,8.44-241.83,102.11-254.34,238.89-9.87,107.9,84.26,249.16,185.01,308.33"/>
+      <line id="left-arm" class="cls-1" x1="330.86" y1="950.89" x2="268.3" y2="460"/>
+      <circle class="cls-1" cx="268.3" cy="229.44" r="219.44"/>
+      <rect class="cls-1" x="11.69" y="764.84" width="747" height="233.33" transform="translate(-442.65 391.51) rotate(-35.77)"/>
+  </svg>
+
+    <form id="myForm">
+      <select id="scale-select" name="scale">
+        <option value="major">Major</option>
+        <option value="minor">Minor</option>
+        <option value="dorian">Dorian</option>
+        <option value="phrygian">Phrygian</option>
+        <option value="lydian">Lydian</option>
+        <option value="mixolydian">Mixolydian</option>
+        <option value="aeolian">Aeolian</option>
+        <option value="locrian">Locrian</option>
+        <hr>
+        <option value="blues">Blues</option>
+        <option value="major-pentatonic">Major Pentatonic</option>
+        <option value="minor-pentatonic" selected>Minor Pentatonic</option>
+        <option value="random">Random</option>
+      </select>
+      
+      <br>
+      
+      <select id="interval-select" name="scale">
+        <option value="1n">Whole Notes</option>
+        <option value="2n">Half Notes</option>
+        <option value="4n">Quarter Notes</option>
+        <option value="16n" selected>Sixteenth Notes</option>
+        <option value="32n">Thirty-Second Notes</option>
+        <hr>
+        <option value="1t">Whole Triplets</option>
+        <option value="2t">Half Triplets</option>
+        <option value="4t">Quarter Triplet</option>
+        <option value="8t">Eighth Triplets</option>
+        <option value="16t">Sixteenth Triplets</option>
+        <option value="32t">Thirty-Second Triplets</option>
+      </select> Intervals
+      
+      <br>
+      
+      <select id="duration-select" name="scale">
+        <option value="1n">Whole Notes</option>
+        <option value="2n">Half Notes</option>
+        <option value="4n">Quarter Notes</option>
+        <option value="8n">Eighth Notes</option>
+        <option value="16n" selected>Sixteenth Notes</option>
+        <option value="32n">Thirty-Second Notes</option>
+        <hr>
+        <option value="1t">Whole Triplets</option>
+        <option value="2t">Half Triplets</option>
+        <option value="4t">Quarter Triplet</option>
+        <option value="8t">Eighth Triplets</option>
+        <option value="16t">Sixteenth Triplets</option>
+        <option value="32t">Thirty-Second Triplets</option>
+      </select> Note Duration
+
+      <br>
+
+      <input id="bpm-input" value="100"> BPM
+
+      <br>
+
+      <hr>
+
+      Drums? <input id="drums-input" type="checkbox">
+      <br>
+      <input id="drums-pitch-input"> Drum Pitch
+
+      <hr>
+      
+      <div id="fret-string1">
+        
+      </div>
+      <div id="fret-string2">
+        
+      </div>
+      <div id="fret-string3">
+        
+      </div>
+      <div id="fret-string4">
+        
+      </div>
+      <div id="fret-string5">
+        
+      </div>
+      <div id="fret-string6">
+        
+      </div>
+
+
     </form>
   </body>
-  
+
   <script src="https://unpkg.com/tone"></script>
   <script src="https://cdn.jsdelivr.net/gh/netizenorg/netnet-standard-library@1.0.1/build/nn.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tonal/browser/tonal.min.js"></script>
   <script>
-    let interval = 200
     let step = 0
-    let pentatonic = returnScale("c4", "pentatonic")
-    let synth
+    let scale = mirrorScale(
+      [...nn.createScale("A3", "minor-pentatonic", false),
+       ...nn.createScale("A4", "minor-pentatonic", true), "C6"]);
+    let n;
+    let interval = "16n";
+    let duration = "16n";
+    let drumsPitch = "C4";
+    
+    let x = 330
+    let y = 950
+    
+    let strings = "E3, A3, D4, G4, B4, E5"
+    
+    console.log(
+      isInScale(41, nn.createScale("C4", "major", true))
+    );
 
-    function setup () {
-      synth = new Tone.Synth().toDestination()
-      loop()
+    let fretboard = [
+      [nn.noteToMidi('E2')],
+      [nn.noteToMidi('A2')],
+      [nn.noteToMidi('D3')],
+      [nn.noteToMidi('G3')],
+      [nn.noteToMidi('B3')],
+      [nn.noteToMidi('E4')],
+    ]
+    
+    let fretboardElements = [
+      [],
+      [],
+      [],
+      [],
+      [],
+      [],
+    ]
+    
+    const synthA = new Tone.FMSynth().toDestination();
+    const synthB = new Tone.PluckSynth().toDestination();
+    const loopA = new Tone.Loop((time) => {
+      n = scale[step % scale.length];
+      synthA.triggerAttackRelease(n, duration, time);
+      step += 1;
+      
+      offset = Math.abs(Math.sin(step / 10));
+      nn.get('#left-arm').setAttribute('x1', 300 + offset * 400);
+      nn.get('#left-arm').setAttribute('y1', 950 - offset * 260);
+    }, interval).start(0);
+    
+    const drumLoop = new Tone.Loop((time) => {
+      synthB.triggerAttackRelease(drumsPitch, "4n", time);
+    }, "4n");
+    
+    Tone.getTransport().start();
+    nn.get('#scale-select').on('change', updateScale);
+    nn.get('#bpm-input').on('input', updateBpm);
+    nn.get('#drums-input').on('input', updateDrums);
+    nn.get('#interval-select').on('input', updateInterval);
+    nn.get('#duration-select').on('input', updateDuration);
+    nn.get('#drums-pitch-input').on('input', updateDrums);
+    
+    
+    function updateScale() {
+      let type = nn.get('#scale-select').value;
+      step = 0;
+      scale = mirrorScale(
+      [...nn.createScale("A3", type, false),
+       ...nn.createScale("A4", type, true)]);
     }
-
-    function play (note) {
-      synth.triggerAttackRelease(note, '8n')
+    
+    function updateBpm() {
+      let speed = nn.get('#bpm-input').value;
+      Tone.getTransport().bpm.rampTo(speed, 1);
     }
-
-    function getNote (root, step) {
-      return pentatonic[step % pentatonic.length]
+    
+    function updateDrums() {
+      let drumsOn = nn.get('#drums-input').checked;
+      
+      if (!drumsOn) {
+        drumLoop.stop();
+      } else if (drumsPitch !== null) {
+        drumLoop.start(0);
+      }
     }
+    
+    function isInScale(target, scale) {
+      const includedClasses = new Set([]);
+  
+      for (const note of scale) {
+        let pitchClass = nn.noteToMidi(note) % 12;
+        includedClasses.add(pitchClass)
+      }
 
-    function sleep(ms) {
-      return new Promise(resolve => setTimeout(resolve, ms))
+      return includedClasses.has(target % 12);
+    }
+    
+    /// e.key
+    /// on('keydown', func)
+    
+    function updateInterval() {
+      let newInterval = nn.get('#interval-select').value;
+      step = 0;
+      loopA.stop();
+      loopA.interval = newInterval;
+      interval = newInterval;
+      loopA.start(0);
+    }
+    
+    function updateDuration() {
+      let newDuration = nn.get('#duration-select').value;
+      step = 0;
+      duration = newDuration;
     }
     
     function returnScale(root, scale) {
@@ -48,15 +248,14 @@
 
       return result
     }
-
-    async function loop() {
-      while (true) {
-        step += 1
-        play(getNote(null, step))
-        await sleep(interval)
+    
+    function mirrorScale(scale) {
+      let result = [...scale];
+      for (let i = scale.length - 2; i > 0; i--) {
+        result.push(scale[i])
       }
+      return result
     }
-
-    window.addEventListener('load', setup)
+    
   </script>
 </html>
