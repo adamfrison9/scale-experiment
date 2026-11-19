@@ -30,6 +30,23 @@
   </svg>
 
     <form id="myForm">
+      <select id="root-select" name="scale">
+        <option value="A3">A</option>
+        <option value="A#3">A#</option>
+        <option value="B3">B</option>
+        <option value="C3">C</option>
+        <option value="C#3">C#</option>
+        <option value="D3">D</option>
+        <option value="D#3">D#</option>
+        <option value="E3">E</option>
+        <option value="E#3">E#</option>
+        <option value="F3">F</option>
+        <option value="F#3">F#</option>
+        <option value="G3">G</option>
+        <option value="G#3">G#</option>
+        <hr>
+      </select>
+      
       <select id="scale-select" name="scale">
         <option value="major">Major</option>
         <option value="minor">Minor</option>
@@ -95,22 +112,22 @@
 
       <hr>
       
-      <div id="fret-string1">
-        
-      </div>
-      <div id="fret-string2">
-        
-      </div>
-      <div id="fret-string3">
+      <div id="fret-string5">
         
       </div>
       <div id="fret-string4">
         
       </div>
-      <div id="fret-string5">
+      <div id="fret-string3">
         
       </div>
-      <div id="fret-string6">
+      <div id="fret-string2">
+        
+      </div>
+      <div id="fret-string1">
+        
+      </div>
+      <div id="fret-string0">
         
       </div>
 
@@ -122,52 +139,32 @@
   <script src="https://cdn.jsdelivr.net/gh/netizenorg/netnet-standard-library@1.0.1/build/nn.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tonal/browser/tonal.min.js"></script>
   <script>
+    /* ----------- */
+    /* Start Music */
+    /* ----------- */
+    let n;
     let step = 0
+
+    /* Scale Info */
+    let root = "G3"
     let scale = mirrorScale(
       [...nn.createScale("A3", "minor-pentatonic", false),
        ...nn.createScale("A4", "minor-pentatonic", true), "C6"]);
-    let n;
+
+    /* Timing Info */
     let interval = "16n";
     let duration = "16n";
+    
+    /* Drums Info */
     let drumsPitch = "C4";
     
-    let x = 330
-    let y = 950
-    
-    let strings = "E3, A3, D4, G4, B4, E5"
-    
-    console.log(
-      isInScale(41, nn.createScale("C4", "major", true))
-    );
-
-    let fretboard = [
-      [nn.noteToMidi('E2')],
-      [nn.noteToMidi('A2')],
-      [nn.noteToMidi('D3')],
-      [nn.noteToMidi('G3')],
-      [nn.noteToMidi('B3')],
-      [nn.noteToMidi('E4')],
-    ]
-    
-    let fretboardElements = [
-      [],
-      [],
-      [],
-      [],
-      [],
-      [],
-    ]
-    
+    /* Synth & Transport Setup */
     const synthA = new Tone.FMSynth().toDestination();
     const synthB = new Tone.PluckSynth().toDestination();
     const loopA = new Tone.Loop((time) => {
       n = scale[step % scale.length];
       synthA.triggerAttackRelease(n, duration, time);
       step += 1;
-      
-      offset = Math.abs(Math.sin(step / 10));
-      nn.get('#left-arm').setAttribute('x1', 300 + offset * 400);
-      nn.get('#left-arm').setAttribute('y1', 950 - offset * 260);
     }, interval).start(0);
     
     const drumLoop = new Tone.Loop((time) => {
@@ -175,50 +172,66 @@
     }, "4n");
     
     Tone.getTransport().start();
+    
+    /* ---------------- */
+    /* Create Fretboard */
+    /* ---------------- */
+    let strings = ["E3", "A3", "D4", "G4", "B4", "E5"];
+
+    let fretboard = [[],[],[],[],[],[]];
+
+    let openStrings = ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'];
+
+    for (let i = 0; i < 6; i++) {
+      let openNote = nn.noteToMidi(openStrings[i]);
+      let stringSelector = '#fret-string' + i;
+
+      for (let j = 0; j <= 24; j++) {
+        let newNote = openNote + j;
+        let newElement = nn.create('p').content(newNote).addTo(stringSelector);
+
+        let obj = { string: i, fret: j, midi: newNote, el: newElement };
+        fretboard[i].push(obj);
+      }
+    }
+    highlightScale();
+    
+    /* ----- */
+    /* Binds */
+    /* ----- */
+    nn.get('#root-select').on('change', updateRoot);
     nn.get('#scale-select').on('change', updateScale);
-    nn.get('#bpm-input').on('input', updateBpm);
-    nn.get('#drums-input').on('input', updateDrums);
+
+    /* Timing */
     nn.get('#interval-select').on('input', updateInterval);
     nn.get('#duration-select').on('input', updateDuration);
+    nn.get('#bpm-input').on('input', updateBpm);
+
+    /* Drums */
+    nn.get('#drums-input').on('input', updateDrums);
     nn.get('#drums-pitch-input').on('input', updateDrums);
     
+    /* ------------------------------- */
+    /* Functions for Updating Settings */
+    /* ------------------------------- */
+    function updateRoot() {
+      root = nn.get('#root-select').value;
+      updateScale();
+    }
     
     function updateScale() {
+      octave = Number(scale[0][scale[0].length - 1]) + 1;
       let type = nn.get('#scale-select').value;
       step = 0;
-      scale = mirrorScale(
-      [...nn.createScale("A3", type, false),
-       ...nn.createScale("A4", type, true)]);
-    }
-    
-    function updateBpm() {
-      let speed = nn.get('#bpm-input').value;
-      Tone.getTransport().bpm.rampTo(speed, 1);
-    }
-    
-    function updateDrums() {
-      let drumsOn = nn.get('#drums-input').checked;
-      
-      if (!drumsOn) {
-        drumLoop.stop();
-      } else if (drumsPitch !== null) {
-        drumLoop.start(0);
-      }
-    }
-    
-    function isInScale(target, scale) {
-      const includedClasses = new Set([]);
-  
-      for (const note of scale) {
-        let pitchClass = nn.noteToMidi(note) % 12;
-        includedClasses.add(pitchClass)
-      }
 
-      return includedClasses.has(target % 12);
+      let rootStripped = nn.stripOctave(root);
+      let secondOctave = rootStripped + octave;
+
+      scale = mirrorScale(
+      [...nn.createScale(root, type, false),
+       ...nn.createScale(secondOctave, type, true)]);
+      highlightScale();
     }
-    
-    /// e.key
-    /// on('keydown', func)
     
     function updateInterval() {
       let newInterval = nn.get('#interval-select').value;
@@ -235,20 +248,53 @@
       duration = newDuration;
     }
     
-    function returnScale(root, scale) {
-      let myScale = Tonal.Scale.get(root + " " + scale).notes
-      let result = []
-
-      for (let i = 0; i < myScale.length; i++) {
-        result.push(myScale[i])
-      }
-      for (let i = myScale.length - 2; i > 0; i--) {
-        result.push(myScale[i])
-      }
-
-      return result
+    function updateBpm() {
+      let speed = nn.get('#bpm-input').value;
+      Tone.getTransport().bpm.rampTo(speed, 1);
     }
     
+    function updateDrums() {
+      let drumsOn = nn.get('#drums-input').checked;
+      
+      if (!drumsOn) {
+        drumLoop.stop(0);
+      } else if (drumsPitch !== null) {
+        drumLoop.start(0);
+      }
+    }
+
+    /* -------------- */
+    /* Handle Visuals */
+    /* -------------- */    
+    function highlightScale() {
+      for (let guitarString of fretboard) {
+        for (let fret of guitarString) {
+          let midi = fret.midi;
+          let elem = fret.el;
+
+          if (isInScale(midi, scale)) {
+            elem.set('style', 'color: limegreen;');
+          } else {
+            elem.set('style', 'color: black;');
+          }
+        }
+      }
+    }
+
+    /* ------------------------- */
+    /* Music Theory & Utilities */
+    /* ------------------------- */
+    function isInScale(target, targetScale) {
+      const includedClasses = new Set([]);
+  
+      for (const note of targetScale) {
+        let pitchClass = nn.noteToMidi(note) % 12;
+        includedClasses.add(pitchClass)
+      }
+
+      return includedClasses.has(target % 12);
+    }
+
     function mirrorScale(scale) {
       let result = [...scale];
       for (let i = scale.length - 2; i > 0; i--) {
@@ -256,6 +302,7 @@
       }
       return result
     }
-    
+    /// e.key
+    /// on('keydown', func)
   </script>
 </html>
